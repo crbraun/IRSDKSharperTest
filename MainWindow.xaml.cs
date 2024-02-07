@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls.Primitives;
@@ -13,6 +14,7 @@ namespace IRSDKSharperTest
 		private int lastTickCount = -1;
 
 		private float[] carIdxLapDistPct = new float[ 64 ];
+		private int lapsCompleted = 0;
 
 		public MainWindow()
 		{
@@ -103,6 +105,47 @@ namespace IRSDKSharperTest
 
 			RedrawWindow();
 		}
+		private void CaptureRaceProperties()
+		{
+            var irsdk = Program.IRSDKSharper;
+
+			if (irsdk != null)
+			{
+				Object LastLapNLapTime = irsdk.Data.GetValue("LapLastNLapTime");
+				Object LastLapTime = irsdk.Data.GetValue("LapLastLapTime");
+				Object FuelLevel = irsdk.Data.GetValue("FuelLevel");
+				Object SessionTime = irsdk.Data.GetValue("SessionTime");
+				Object SessionTimeRemain = irsdk.Data.GetValue("SessionTimeRemain");
+				Object SessionTimeTotal = irsdk.Data.GetValue("SessionTimeTotal");
+				Object SessionLapsRemainEx = irsdk.Data.GetValue("SessionLapsRemainEx");
+				Object SessionLapsRemain = irsdk.Data.GetValue("SessionLapsRemain");
+				Object LapCompleted	= irsdk.Data.GetValue("LapCompleted");
+				Object RaceLaps = irsdk.Data.GetValue("RaceLaps");
+				Object SessionLapsTotal = irsdk.Data.GetValue("SessionLapsTotal");
+
+				Debug.WriteLine("");
+				Debug.WriteLine("LapLastNLapTime: " + LastLapNLapTime);
+				Debug.WriteLine("LapLastLapTime: " + LastLapTime);
+				Debug.WriteLine("FuelLevel: " + FuelLevel);
+				Debug.WriteLine("SessionTime: " + SessionTime);
+				Debug.WriteLine("SessionTimeRemain: " + SessionTimeRemain);
+				Debug.WriteLine("SessionTimeTotal: " + SessionTimeTotal);
+				Debug.WriteLine("SessionLapsRemainEx: " + SessionLapsRemainEx);
+				Debug.WriteLine("SessionLapsRemain: " + SessionLapsRemain);
+				Debug.WriteLine("LapCompleted: " + LapCompleted);
+				Debug.WriteLine("RaceLaps: " + RaceLaps);
+				Debug.WriteLine("SessionLapsTotal: " + SessionLapsTotal); 
+				Debug.WriteLine("-----------------------------------");
+
+				if (lapsCompleted < (int)LapCompleted)
+				{
+                    Debug.WriteLine("Lap Completed: " + LapCompleted);
+                }
+
+				lapsCompleted = (int)LapCompleted;
+
+			}
+        }
 
 		private void OnStopped()
 		{
@@ -193,6 +236,7 @@ namespace IRSDKSharperTest
 			irsdk.OnDisconnected += OnDisconnected;
 			irsdk.OnSessionInfo += OnSessionInfo;
 			irsdk.OnTelemetryData += OnTelemetryData;
+			irsdk.OnTelemetryData += CaptureRaceProperties;
 			irsdk.OnStopped += OnStopped;
 
 			var desktopFolderPath = Environment.GetFolderPath( Environment.SpecialFolder.Desktop );
@@ -205,10 +249,15 @@ namespace IRSDKSharperTest
 		private void Start_Click( object sender, RoutedEventArgs e )
 		{
 			var irsdk = Program.IRSDKSharper;
+			Debug.WriteLine("Start_Click");
 
-			irsdk?.Start();
-
-			UpdateValueLabels();
+			if ( irsdk != null )
+			{
+                irsdk.Start();
+                irsdk.UpdateInterval = 300;
+                lapsCompleted = 0;
+                UpdateValueLabels();
+            }
 		}
 
 		private void Stop_Click( object sender, RoutedEventArgs e )
